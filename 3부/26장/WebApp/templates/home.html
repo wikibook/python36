@@ -1,0 +1,219 @@
+<html lang="ko">
+
+<head>
+    <title>AIR</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        //문자열로 부터 datetime을 구하는 함수.
+        function getDatetimeFromString(str) {
+            var d = str.split(' ');
+            var t = d[1].split(':');
+            d = d[0].split('-');
+            return new Date(d[0], parseInt(d[1], 10) - 1, d[2], t[0], t[1]);
+        }
+
+        //Google chart 중 gause, table, corechart를 사용함.
+        google.charts.load('current', {
+            'packages': ['gauge', 'table','corechart']
+        });
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+
+            /* Gauge */
+            var pm10_data = google.visualization.arrayToDataTable([
+                ['Label', 'Value'],
+                ['PM 10', 0]
+            ]);
+
+            var pm25_data = google.visualization.arrayToDataTable([
+                ['Label', 'Value'],
+                ['PM 2.5', 0]
+            ]);
+
+            // flask render 함수가 동작할 때 이곳에 7일 동안의 공기 측정 데이터를 json object 형태로 넣어준다.            
+            var allData = {{jsonAirInfoList|safe}} // 'no escape by safe filter'
+
+            var pm10_options = {
+                width: 100,
+                height: 100,
+                max: 200,
+                greenFrom: 0,
+                greenTo: 30,
+                greenColor: '#4e89f6',
+                yellowFrom: 81,
+                yellowTo: 150,
+                yellowColor: '#fe7f41',
+                redFrom: 151,
+                redTo: 200,
+                minorTicks: 1
+            };
+
+            var pm25_options = {
+                width: 100,
+                height: 100,
+                max: 110,
+                greenFrom: 0,
+                greenTo: 15,
+                greenColor: '#4e89f6',
+                yellowFrom: 51,
+                yellowTo: 80,
+                yellowColor: '#fe7f41',
+                redFrom: 81,
+                redTo: 110,
+                minorTicks: 1
+            };
+            //미세먼지 초미세 먼지차트를 구하기 위한 차트 
+            var pm10_chart = new google.visualization.Gauge(document.getElementById('pm10_chart_div'));
+            pm10_chart.draw(pm10_data, pm10_options);
+            var pm25_chart = new google.visualization.Gauge(document.getElementById('pm25_chart_div'));
+            pm25_chart.draw(pm25_data, pm25_options);
+
+            /* Table */
+            var THPdata = new google.visualization.DataTable();
+            THPdata.addColumn('string', 'Name');
+            THPdata.addColumn('number', 'Data');
+            THPdata.addRows([
+                ['온도', {
+                    v: 0,
+                    f: '0 ℃'
+                }],
+                ['습도', {
+                    v: 0,
+                    f: '0 %'
+                }],
+                ['대기압', {
+                    v: 1000,
+                    f: '1000 hPa'
+                }],
+            ]);
+
+            var THPtable = new google.visualization.Table(document.getElementById('TPHDiv'));
+
+            THPtable.draw(THPdata, {
+                showRowNumber: false,
+                width: '125',
+                height: '120'
+            });
+
+            /* line Chart */
+            var pm_data = new google.visualization.DataTable();
+            pm_data.addColumn('datetime', 'Date');
+            pm_data.addColumn('number', '미세먼지');
+            pm_data.addColumn('number', '초미세먼지');
+
+            var temp_data = new google.visualization.DataTable();
+            temp_data.addColumn('datetime', 'Date');
+            temp_data.addColumn('number', '온도');
+
+            var hum_data = new google.visualization.DataTable();
+            hum_data.addColumn('datetime', 'Date');
+            hum_data.addColumn('number', '습도');
+
+            var press_data = new google.visualization.DataTable();
+            press_data.addColumn('datetime', 'Date');
+            press_data.addColumn('number', '대기압');
+
+            //서버로 부터 가져온 데이터(allData)를 google chart에서 사용할 수 있도록 DataTable에 넣어준다.
+            var vDataConvertor = function(value, index) {
+                pm_data.addRow([getDatetimeFromString(value['date']), Number(value['pm10']), Number(value['pm25'])]);
+                temp_data.addRow([getDatetimeFromString(value['date']), Number(value['temp'])]);
+                hum_data.addRow([getDatetimeFromString(value['date']), Number(value['hum'])]);
+                press_data.addRow([getDatetimeFromString(value['date']), Number(value['press'])]);
+            }
+            
+            allData.forEach(vDataConvertor);
+            //차트 옵션
+            var chart_options = {
+                legend: {
+                    position: 'top'
+                },
+                chartArea: {
+                    left: 35,
+                    top: 20,
+                    width: '75%',
+                    height: '70%'
+                },
+                width: '400',
+                height: '200',
+            };
+
+            var pm_chart = new google.visualization.LineChart(document.getElementById('pmLineChart'));
+            pm_chart.draw(pm_data, chart_options);
+
+            var temp_chart = new google.visualization.LineChart(document.getElementById('tempLineChart'));
+            chart_options['colors'] = ['#FF8200']; //set line color
+            temp_chart.draw(temp_data, chart_options);
+
+            var hum_chart = new google.visualization.LineChart(document.getElementById('humLineChart'));
+            chart_options['colors'] = ['#A05C37'];
+            hum_chart.draw(hum_data, chart_options);
+
+            var press_chart = new google.visualization.LineChart(document.getElementById('pressLineChart'));
+            chart_options['colors'] = ['#0064CD'];
+            press_chart.draw(press_data, chart_options);
+
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    try {
+                        console.log(xhttp.responseText);
+                        //서버에서 주는 데이터는 Json 형식의 문자열이기 때문에 parse 함수를 이용해 json object로 변환한다.
+                        var airData = JSON.parse(xhttp.responseText);
+
+                        //서버에서 가져온 데이터를 현재 gause, table 에 반영한다.
+                        pm10_data.setValue(0, 1, airData['pm10']);
+                        pm10_chart.draw(pm10_data, pm10_options);
+
+                        pm25_data.setValue(0, 1, airData['pm25']);
+                        pm25_chart.draw(pm25_data, pm25_options);
+
+                        THPdata.setCell(0, 1, Number(airData['temp']), airData['temp'] + ' ℃');
+                        THPdata.setCell(1, 1, Number(airData['hum']), airData['hum'] + ' %');
+                        THPdata.setCell(2, 1, Number(airData['press']), airData['press'] + ' hPa');
+                        THPtable.draw(THPdata, {
+                            showRowNumber: false,
+                            width: '125',
+                            height: '120'
+                        });
+
+                    } catch (err) {
+                        console.log("error:" + err);
+                    }
+                }
+            };
+            xhttp.open("GET", "/getLatestAirInfo", true);
+            xhttp.send();
+
+            setInterval(function() {
+                xhttp.open("GET", "/getLatestAirInfo", true);
+                xhttp.send();
+            }, 15000); //15초 마다 서버에서 데이터를 읽어옴
+        }
+    </script>
+</head>
+
+
+<body>
+    <div style="text-align: left; font-size:20; margin-bottom : 10px; margin:auto;">현재 공기 정보</div>
+    <div id="particleDiv" style="text-align: left; font-size:20; margin-bottom : 10px">
+        <div id="pm10_chart_div" style="width: 100; height: 100; display: inline-block;"></div>
+        <div id="pm25_chart_div" style="width: 100; height: 100; display: inline-block;"></div>
+        <div id="TPHDiv" style="width: 125; height: 120; display: inline-block; margin-left: 3px"> </div>
+    </div>
+    <div style="text-align: left; font-size:20; margin-bottom : 10px;">공기 정보 차트</div>
+    <div id="pmLineChart" style="text-align: left; font-size:20; margin:auto;">
+    </div>
+    <div id="tempLineChart" style="text-align: left; font-size:20; margin:auto;">
+    </div>
+    <div id="humLineChart" style="text-align: left; font-size:20; margin:auto;">
+    </div>
+    <div id="pressLineChart" style="text-align: left; font-size:20; margin:auto;">
+    </div>
+</body>
+
+</html>

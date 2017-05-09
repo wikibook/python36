@@ -1,0 +1,43 @@
+<html lang="ko">
+
+<head>
+    <title>bookmark sample</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+    <div>
+        {# [START form] #}
+        <form method="POST" action="/addbookmark" enctype="multipart/form-data">
+            <label for="url">URL</label>&nbsp;&nbsp;
+            <input type="text" name="url" id="url" size="21" value="" />
+            <br>
+            <label for="name">Name</label>
+            <input type="text" name="name" size="12" id="name" value="" />&nbsp;&nbsp;&nbsp;
+            <button type="submit">Add</button>
+        </form>
+        {# [END form] #}
+    </div>
+    <div>
+        <p>Bookmark List</p>
+    </div>
+    <div id='bookmark_list'>
+        <form method="POST" action="/delbookmark" enctype="multipart/form-data">
+            {% for bookmark in bookmarks %}
+            <div style="margin-top: 15px">
+                <input type="checkbox" name="check" value={{bookmark.id}} />
+                <a style="text-decoration: none;" href="{{bookmark.url}}">
+                    {{bookmark.name}}
+                </a>
+            </div>
+            {% else %}
+            <p>No bookmark</p>
+            {% endfor %}
+            <br>
+            <button type="submit">Delete Bookmark</button>
+        </form>
+    </div>
+</body>
+
+</html>

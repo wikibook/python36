@@ -1,0 +1,3 @@
+start: Hi, My name is Alexa. What is your name?
+repeat: Could you tell me your name? please
+answer: Nice to see you. {{ name }}

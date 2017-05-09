@@ -1,0 +1,2 @@
+NameIntent      My name is {name}
+NameIntent      I am {name}

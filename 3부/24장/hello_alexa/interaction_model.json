@@ -1,0 +1,9 @@
+{
+    "intents": [{
+        "intent": "NameIntent",
+        "slots": [{
+            "name": "name",
+            "type": "AMAZON.US_FIRST_NAME"
+        }]
+    }]
+}

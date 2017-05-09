@@ -1,0 +1,11 @@
+YesIntent   yes
+YesIntent   sure
+
+NoIntent    no
+NoIntent    no. thanks
+NoIntent    not yet
+
+AnswerIntent {first} {second} {third}
+AnswerIntent {first} {second} and {third}
+AnswerIntent My answer is {first} {second} {third}
+AnswerIntent My answer is {first} {second} and {third}
